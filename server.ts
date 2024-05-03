@@ -24,6 +24,11 @@ try {
 
 bot?.start(async (ctx) => {
   const fromUser = ctx?.update?.message?.from;
+  if (fromUser?.is_bot) {
+    ctx?.reply("Sorry! Bots are not allowed.");
+    return;
+  }
+
   try {
     await userModel.findOneAndUpdate(
       { tgId: fromUser?.id },
@@ -140,7 +145,8 @@ bot?.on(message("photo"), async (ctx) => {
       messages: [
         {
           role: "system",
-          content: "Extract the ingredients of the food item",
+          content:
+            "Extract the ingredients of the food item or tell which food item is it if the ingredients in not shown",
         },
         {
           role: "user",
