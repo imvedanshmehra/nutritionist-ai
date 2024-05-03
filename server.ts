@@ -44,6 +44,7 @@ bot?.start(async (ctx) => {
     );
 
     const message = await ctx?.reply(welcomeMessage(fromUser?.first_name));
+    bot?.telegram?.unpinAllChatMessages(ctx?.message?.chat?.id);
     bot?.telegram?.pinChatMessage(ctx?.message?.chat?.id, message?.message_id);
   } catch (err) {
     console.log(err);
