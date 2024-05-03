@@ -29,6 +29,8 @@ bot?.start(async (ctx) => {
     return;
   }
 
+  bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
+
   try {
     await userModel.findOneAndUpdate(
       { tgId: fromUser?.id },
@@ -74,6 +76,7 @@ bot?.on(message("text"), async (ctx) => {
   const fromUser = ctx?.update?.message?.from;
   const messageText = ctx?.message?.text;
   let chatHistory: { text: string; role: "user" | "assistant" }[] = [];
+  bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
 
   // Store user message in the DB
   await eventsModel?.create({
