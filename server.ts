@@ -5,6 +5,7 @@ import userModel from "./src/models/users";
 import eventsModel from "./src/models/events";
 import dbConnect from "./src/config/db";
 import { openai, config, model } from "./src/helpers/open-ai";
+import { welcomeMessage } from "./src/utils/globals";
 
 const bot = new Telegraf(process.env.BOT_TOKEN || "");
 
@@ -32,9 +33,8 @@ bot?.start(async (ctx) => {
       { upsert: true, new: true }
     );
 
-    ctx?.reply(
-      `Hello ${fromUser?.first_name}! Welcome to Nutritionist AI 🚀 Just tell me the ingredients of a food item or upload an image of the food ingredients label found (mostly) at the back of the packaged food. Let's start making healthier choices everyday ✨`
-    );
+    const message = await ctx?.reply(welcomeMessage(fromUser?.first_name));
+    bot?.telegram?.pinChatMessage(ctx?.message?.chat?.id, message?.message_id);
   } catch (err) {
     console.log(err);
     ctx?.reply(
@@ -50,9 +50,7 @@ bot.command("reset", async (ctx) => {
       tgId: fromUser?.id,
     });
 
-    ctx?.reply(
-      `Hello ${fromUser?.first_name}! Welcome to Nutritionist AI 🚀 Just tell me the ingredients of a food item or upload an image of the food ingredients label found (mostly) at the back of the packaged food. Let's start making healthier choices everyday ✨`
-    );
+    ctx?.reply(welcomeMessage(fromUser?.first_name));
   } catch (err) {
     console.log("err", err);
     ctx?.reply(
@@ -125,8 +123,7 @@ bot?.on(message("text"), async (ctx) => {
 
 // TODO: Extract text from the image and send it to OpenAI.
 bot?.on(message("photo"), async (ctx) => {
-  const photo = ctx?.update?.message?.photo;
-  console.log("photo===> ", photo);
+  console.log("ctx", ctx);
   ctx.reply("Photo received");
 });
 
