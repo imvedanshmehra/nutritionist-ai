@@ -4,7 +4,12 @@ import "dotenv/config";
 import userModel from "./src/models/users";
 import eventsModel from "./src/models/events";
 import dbConnect from "./src/config/db";
-import { openai, config, model } from "./src/helpers/open-ai";
+import {
+  openai,
+  config,
+  defaultModel,
+  systemPrompt,
+} from "./src/helpers/open-ai";
 import { welcomeMessage } from "./src/utils/globals";
 
 const bot = new Telegraf(process.env.BOT_TOKEN || "");
@@ -83,7 +88,101 @@ bot?.on(message("text"), async (ctx) => {
 
   try {
     const response = await openai.chat.completions.create({
-      model,
+      model: defaultModel,
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        ...chatHistory?.map((chat) => ({
+          role: chat?.role,
+          content: chat?.text,
+        })),
+      ],
+      ...config,
+    });
+
+    // Store assistant message in DB
+    try {
+      await eventsModel?.create({
+        tgId: fromUser?.id,
+        role: "assistant",
+        text: response?.choices[0]?.message?.content,
+      });
+    } catch (err) {
+      console.log("err", err);
+    }
+
+    // Reply to the user
+    ctx?.reply(
+      response?.choices[0]?.message?.content || "Something went wrong"
+    );
+  } catch (err) {
+    console.log("error", err);
+    ctx?.reply(
+      "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
+    );
+  }
+});
+
+bot?.on(message("photo"), async (ctx) => {
+  const fromUser = ctx?.update?.message?.from;
+  const photos = ctx?.update?.message?.photo;
+  const caption = ctx?.update?.message?.caption;
+  const file = await bot?.telegram?.getFile(
+    photos[photos?.length - 1]?.file_id
+  );
+  let chatHistory: { text: string; role: "user" | "assistant" }[] = [];
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
+      messages: [
+        {
+          role: "system",
+          content: "Extract the ingredients of the food item",
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: `https://api.telegram.org/file/bot${process?.env?.BOT_TOKEN}/${file.file_path}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 300,
+    });
+
+    const textResp = response?.choices[0]?.message?.content;
+
+    // Store user message in the DB
+    await eventsModel?.create({
+      tgId: fromUser?.id,
+      role: "user",
+      text: `${textResp} ${caption}`,
+    });
+
+    // Fetch previous chat history
+    try {
+      chatHistory = await eventsModel?.find({
+        tgId: fromUser?.id,
+      });
+    } catch (err) {
+      console.log("err", err);
+      ctx?.reply("Cannot fetch our previous chat history.");
+    }
+  } catch (err) {
+    console.log("err", err);
+    ctx?.reply("Cannot parse image");
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: defaultModel,
       messages: [
         {
           role: "system",
@@ -119,12 +218,6 @@ bot?.on(message("text"), async (ctx) => {
       "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
     );
   }
-});
-
-// TODO: Extract text from the image and send it to OpenAI.
-bot?.on(message("photo"), async (ctx) => {
-  console.log("ctx", ctx);
-  ctx.reply("Photo received");
 });
 
 bot?.launch();
