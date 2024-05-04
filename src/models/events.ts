@@ -14,6 +14,7 @@ const eventSchema = new Schema(
     },
     role: {
       type: String,
+      enum: ["user", "assistant", "system"],
       required: true,
     },
   },
