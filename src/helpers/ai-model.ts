@@ -5,7 +5,7 @@ const openai = new OpenAI({
 });
 
 const modelConfig = {
-  temperature: 0.5,
+  temperature: 1,
   max_tokens: 500,
   top_p: 1,
   frequency_penalty: 0,
