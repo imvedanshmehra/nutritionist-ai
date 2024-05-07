@@ -3,7 +3,10 @@ import "dotenv/config";
 import dbConnect from "./config/db";
 import { welcomeMessage } from "./utils/globals";
 import { bot } from "./config/bot";
-import { createOrUpdateUser } from "./controllers/users-controller";
+import {
+  createOrUpdateUser,
+  updateUserTokens,
+} from "./controllers/users-controller";
 import {
   createEvent,
   deleteAllEventsOfUser,
@@ -103,6 +106,12 @@ bot?.on(message("text"), async (ctx) => {
     // Save assistant event
     try {
       await createEvent(fromUser?.id, "assistant", modelText);
+      await updateUserTokens(
+        fromUser?.id,
+        response?.usage?.prompt_tokens || 0,
+        response?.usage?.completion_tokens || 0,
+        response?.usage?.total_tokens || 0
+      );
     } catch (err) {
       ctx?.reply("Something went wrong!");
     }

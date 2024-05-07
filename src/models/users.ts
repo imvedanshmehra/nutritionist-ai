@@ -25,6 +25,18 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
+    promptTokens: {
+      type: Number,
+      default: 0,
+    },
+    completionTokens: {
+      type: Number,
+      default: 0,
+    },
+    totalTokens: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
