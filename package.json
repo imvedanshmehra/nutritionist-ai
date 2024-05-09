@@ -10,13 +10,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@lemonsqueezy/lemonsqueezy.js": "^2.2.0",
+    "body-parser": "^1.20.2",
     "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "mongoose": "^8.3.3",
     "openai": "^4.40.1",
     "telegraf": "^4.16.3",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^20.12.7",
     "nodemon": "^3.1.0",
     "typescript": "^5.4.5"

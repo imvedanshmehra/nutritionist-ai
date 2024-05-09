@@ -1,6 +1,15 @@
 import userModel from "../models/users";
 import { UserType } from "../types/users.type";
 
+export const getUser = async (userId: number) => {
+  try {
+    const user = await userModel?.findOne({ tgId: userId });
+    return user;
+  } catch (err) {
+    throw err;
+  }
+};
+
 export const createOrUpdateUser = async (user: UserType) => {
   const { tgId, firstName, lastName, isBot, username } = user;
 
@@ -39,6 +48,27 @@ export const updateUserTokens = async (
           completionTokens,
           totalTokens,
         },
+      }
+    );
+
+    return response;
+  } catch (err) {
+    throw err;
+  }
+};
+
+// Update user subscription status
+export const updateUserSubStatus = async (
+  tgId: number | string,
+  subscriptionId: string,
+  status: string
+) => {
+  try {
+    const response = await userModel.findOneAndUpdate(
+      { tgId },
+      {
+        subscriptionId,
+        subscriptionStatus: status,
       }
     );
 
