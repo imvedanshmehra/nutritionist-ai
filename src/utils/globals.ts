@@ -19,4 +19,10 @@ For any feedback or issues please feel free to reach out to me vedanshofficial@g
 `;
 };
 
-export { welcomeMessage };
+const subscribeMessage =
+  'To continue talking to me, subscribe by clicking the "Subscribe" button below 👇';
+
+const userPaidMessage =
+  "Thank you for subscribing, Nutritionist-AI at your service now ✨";
+
+export { welcomeMessage, subscribeMessage, userPaidMessage };

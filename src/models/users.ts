@@ -37,6 +37,14 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
+    subscriptionId: {
+      type: String,
+      default: null,
+    },
+    subscriptionStatus: {
+      type: String,
+      default: "unpaid",
+    },
   },
   {
     timestamps: true,

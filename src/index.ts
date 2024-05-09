@@ -1,168 +1,159 @@
 import { message } from "telegraf/filters";
 import "dotenv/config";
 import dbConnect from "./config/db";
-import { welcomeMessage } from "./utils/globals";
+import { subscribeMessage } from "./utils/globals";
 import { bot } from "./config/bot";
-import {
-  createOrUpdateUser,
-  updateUserTokens,
-} from "./controllers/users-controller";
+import { getUser, updateUserTokens } from "./controllers/users-controller";
 import {
   createEvent,
-  deleteAllEventsOfUser,
   getAllEventsOfUser,
 } from "./controllers/events-controller";
 import { UserRole } from "./types/events.type";
 import { defaultModelChat, visionChat } from "./controllers/model-controller";
+import { Markup } from "telegraf";
+import { getCheckoutURL } from "./helpers/checkout";
+import express from "express";
+import { billingRouter } from "./routes/webhook/billing.routes";
+import startCommand from "./commands/start";
+import resetCommand from "./commands/reset";
+import manageSubCommand from "./commands/manage-subscription";
+import { subscriptionConfig } from "./config/subscription-config";
 
-try {
-  dbConnect();
-  console.log("Successfully connected to the database!");
-} catch (err) {
-  console.log("DB Connection Failed!", err);
-  process?.kill(process?.pid, "SIGTERM");
-}
+const app = express();
 
-bot?.start(async (ctx) => {
-  const fromUser = ctx?.update?.message?.from;
-  const { id, first_name, last_name = "", is_bot, username = "" } = fromUser;
-
-  // Check if the user is a bot
-  if (fromUser?.is_bot) {
-    ctx?.reply("Sorry! Bots are not allowed.");
-    return;
-  }
-
-  // Send typing action
-  bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
-
+const main = async () => {
+  // Connect to DB
   try {
-    // Create a new user in DB for new users
-    await createOrUpdateUser({
-      tgId: id,
-      firstName: first_name,
-      lastName: last_name,
-      isBot: is_bot,
-      username,
-    });
-
-    const message = await ctx?.reply(welcomeMessage(fromUser?.first_name));
-
-    // Pin welcome message
-    bot?.telegram?.unpinAllChatMessages(ctx?.message?.chat?.id);
-    bot?.telegram?.pinChatMessage(ctx?.message?.chat?.id, message?.message_id);
+    dbConnect();
+    console.log("Successfully connected to the database!");
   } catch (err) {
-    console.log(err);
-    ctx?.reply(
-      "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
-    );
-  }
-});
-
-bot.command("reset", async (ctx) => {
-  const fromUser = ctx?.update?.message?.from;
-
-  try {
-    await deleteAllEventsOfUser(fromUser?.id);
-    // Send the welcome message
-    ctx?.reply(welcomeMessage(fromUser?.first_name));
-  } catch (err) {
-    console.log("err", err);
-    ctx?.reply(
-      "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
-    );
-  }
-});
-
-bot?.on(message("text"), async (ctx) => {
-  const fromUser = ctx?.update?.message?.from;
-  const messageText = ctx?.message?.text;
-  let chatHistory: { text: string; role: UserRole }[] = [];
-
-  // Send the typing action
-  bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
-
-  // Save user event
-  try {
-    await createEvent(fromUser?.id, "user", messageText);
-  } catch (err) {
-    ctx?.reply("Something went wrong!");
+    console.log("DB Connection Failed!", err);
+    process?.kill(process?.pid, "SIGTERM");
   }
 
-  try {
-    // Fetch and store previous chat history
-    chatHistory = await getAllEventsOfUser(fromUser?.id);
-  } catch (err) {
-    console.log("error", err);
-    ctx?.reply("Cannot fetch our previous chat history.");
-  }
+  // Set the bot API endpoint
+  app.use(
+    await bot.createWebhook({
+      domain: process?.env?.DOMAIN!,
+    })
+  );
 
-  try {
-    const response = await defaultModelChat(chatHistory);
+  // Initialize subscription config
+  subscriptionConfig();
 
-    const modelText =
-      response?.choices[0]?.message?.content || "Please try again!";
+  // Routes
+  app.use("/billing/webhook", billingRouter);
 
-    // Save assistant event
+  // Commands
+  startCommand();
+  resetCommand();
+  manageSubCommand();
+
+  bot.use(async (ctx, next) => {
+    const fromUser = ctx?.from;
+    // If free user and limit exceeded
     try {
-      await createEvent(fromUser?.id, "assistant", modelText);
-      await updateUserTokens(
-        fromUser?.id,
-        response?.usage?.prompt_tokens || 0,
-        response?.usage?.completion_tokens || 0,
-        response?.usage?.total_tokens || 0
-      );
+      if (!!fromUser?.id) {
+        const user = await getUser(fromUser?.id);
+        // If user is unpaid and free limit is over
+        if (
+          user &&
+          user?.totalTokens >= 10 &&
+          user?.subscriptionStatus !== "active"
+        ) {
+          let checkoutUrl: string | undefined = "";
+
+          try {
+            checkoutUrl = await getCheckoutURL(
+              `${fromUser?.first_name} ${fromUser?.last_name}`,
+              String(fromUser?.id),
+              String(ctx?.chat?.id)
+            );
+          } catch (error) {
+            console.log("err", error);
+          }
+
+          if (!!checkoutUrl) {
+            ctx.replyWithHTML(
+              `<b>${subscribeMessage}</b>`,
+              Markup.inlineKeyboard([
+                [Markup.button.url("Subscribe 🚀", checkoutUrl)],
+              ])
+            );
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      console.log("err", err);
+    }
+
+    await next();
+  });
+
+  bot?.on(message("text"), async (ctx) => {
+    const fromUser = ctx?.update?.message?.from;
+    const messageText = ctx?.message?.text;
+    let chatHistory: { text: string; role: UserRole }[] = [];
+
+    // Send the typing action
+    bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
+
+    // Save user event
+    try {
+      await createEvent(fromUser?.id, "user", messageText);
     } catch (err) {
       ctx?.reply("Something went wrong!");
     }
 
-    // Reply to the user
-    ctx?.reply(modelText);
-  } catch (err) {
-    console.log("error", err);
-    ctx?.reply(
-      "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
-    );
-  }
-});
-
-bot?.on(message("photo"), async (ctx) => {
-  const fromUser = ctx?.update?.message?.from;
-  const photos = ctx?.update?.message?.photo;
-  const caption = ctx?.update?.message?.caption;
-  const file = await bot?.telegram?.getFile(
-    photos[photos?.length - 1]?.file_id
-  );
-
-  let chatHistory: { text: string; role: UserRole }[] = [];
-
-  // Fetch previous chat history
-  try {
-    chatHistory = await getAllEventsOfUser(fromUser?.id);
-  } catch (err) {
-    console.log("err", err);
-    ctx?.reply("Cannot fetch our previous chat history.");
-  }
-
-  // Extract image info
-  try {
-    const imageInfo = await visionChat(file.file_path || "", chatHistory);
-    const visionModelResp = imageInfo?.choices[0]?.message?.content;
-
-    // Store user event
     try {
-      await createEvent(fromUser?.id, "user", `${visionModelResp} ${caption}`);
+      // Fetch and store previous chat history
+      chatHistory = await getAllEventsOfUser(fromUser?.id);
     } catch (err) {
-      console.log("err", err);
+      console.log("error", err);
+      ctx?.reply("Cannot fetch our previous chat history.");
     }
-  } catch (err) {
-    console.log("err", err);
-    ctx?.reply("Cannot parse image");
-  }
 
-  // Parse extracted image info with model
-  try {
-    // Fetch latest chat history
+    try {
+      const response = await defaultModelChat(chatHistory);
+
+      const modelText =
+        response?.choices[0]?.message?.content || "Please try again!";
+
+      // Save assistant event
+      try {
+        await createEvent(fromUser?.id, "assistant", modelText);
+        await updateUserTokens(
+          fromUser?.id,
+          response?.usage?.prompt_tokens || 0,
+          response?.usage?.completion_tokens || 0,
+          response?.usage?.total_tokens || 0
+        );
+      } catch (err) {
+        ctx?.reply("Something went wrong!");
+      }
+
+      // Reply to the user
+      ctx?.reply(modelText);
+    } catch (err) {
+      console.log("error", err);
+      ctx?.reply(
+        "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
+      );
+    }
+  });
+
+  bot?.on(message("photo"), async (ctx) => {
+    const fromUser = ctx?.update?.message?.from;
+    const photos = ctx?.update?.message?.photo;
+    const caption = ctx?.update?.message?.caption;
+    const file = await bot?.telegram?.getFile(
+      photos[photos?.length - 1]?.file_id
+    );
+
+    let chatHistory: { text: string; role: UserRole }[] = [];
+
+    // Fetch previous chat history
     try {
       chatHistory = await getAllEventsOfUser(fromUser?.id);
     } catch (err) {
@@ -170,29 +161,73 @@ bot?.on(message("photo"), async (ctx) => {
       ctx?.reply("Cannot fetch our previous chat history.");
     }
 
-    const response = await defaultModelChat(chatHistory);
-    const modelResponse =
-      response?.choices[0]?.message?.content || "Something went wrong!";
-
-    // Store assistant event
+    // Extract image info
     try {
-      await createEvent(fromUser?.id, "assistant", modelResponse);
+      const imageInfo = await visionChat(file.file_path || "", chatHistory);
+      const visionModelResp = imageInfo?.choices[0]?.message?.content;
+
+      // Store user event
+      try {
+        await createEvent(
+          fromUser?.id,
+          "user",
+          `${visionModelResp} ${caption}`
+        );
+      } catch (err) {
+        console.log("err", err);
+      }
     } catch (err) {
       console.log("err", err);
+      ctx?.reply("Cannot parse image");
     }
 
-    // Reply to the user
-    ctx?.reply(modelResponse);
-  } catch (err) {
-    console.log("error", err);
-    ctx?.reply(
-      "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
-    );
-  }
-});
+    // Parse extracted image info with model
+    try {
+      // Fetch latest chat history
+      try {
+        chatHistory = await getAllEventsOfUser(fromUser?.id);
+      } catch (err) {
+        console.log("err", err);
+        ctx?.reply("Cannot fetch our previous chat history.");
+      }
 
-bot?.launch();
+      const response = await defaultModelChat(chatHistory);
+      const modelResponse =
+        response?.choices[0]?.message?.content || "Something went wrong!";
 
-// Enable graceful stop
-process?.once("SIGINT", () => bot.stop("SIGINT"));
-process?.once("SIGTERM", () => bot.stop("SIGTERM"));
+      // Store assistant event
+      try {
+        await updateUserTokens(
+          fromUser?.id,
+          response?.usage?.prompt_tokens || 0,
+          response?.usage?.completion_tokens || 0,
+          response?.usage?.total_tokens || 0
+        );
+        await createEvent(fromUser?.id, "assistant", modelResponse);
+      } catch (err) {
+        console.log("err", err);
+      }
+
+      // Reply to the user
+      ctx?.reply(modelResponse);
+    } catch (err) {
+      console.log("error", err);
+      ctx?.reply(
+        "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
+      );
+    }
+  });
+
+  bot?.launch();
+
+  // Enable graceful stop
+  process?.once("SIGINT", () => bot.stop("SIGINT"));
+  process?.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+  // Start the express server
+  app.listen(process?.env?.PORT, () =>
+    console.log("Listening on port", process?.env?.PORT)
+  );
+};
+
+main();
