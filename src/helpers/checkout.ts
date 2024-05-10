@@ -27,6 +27,7 @@ export async function getCheckoutURL(
         enabledVariants: [defaultVariantId],
         redirectUrl: `http://www.nutritionistai.pro`,
         receiptButtonText: "Go to Nutritionist-AI 🥦",
+        receiptLinkUrl: "http://www.nutritionistai.pro",
         receiptThankYouNote: "Thank you for signing up to Nutritionist-AI ✨",
       },
     }

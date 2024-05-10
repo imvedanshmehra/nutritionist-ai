@@ -1,5 +1,5 @@
 import { createOrUpdateUser } from "../controllers/users-controller";
-import { welcomeMessage } from "../utils/globals";
+import { errorMsg, supportMsg, welcomeMessage } from "../utils/globals";
 import { bot } from "../config/bot";
 
 const startCommand = () => {
@@ -9,7 +9,7 @@ const startCommand = () => {
 
     // Check if the user is a bot
     if (fromUser?.is_bot) {
-      ctx?.reply("Sorry! Bots are not allowed.");
+      ctx?.reply("Sorry! Bots are not allowed 🤖");
       return;
     }
 
@@ -36,9 +36,8 @@ const startCommand = () => {
       );
     } catch (err) {
       console.log(err);
-      ctx?.reply(
-        "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
-      );
+      ctx?.reply(errorMsg);
+      ctx?.reply(supportMsg);
     }
   });
 };

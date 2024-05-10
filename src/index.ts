@@ -1,7 +1,7 @@
 import { message } from "telegraf/filters";
 import "dotenv/config";
 import dbConnect from "./config/db";
-import { subscribeMessage } from "./utils/globals";
+import { errorMsg, subscribeMessage, supportMsg } from "./utils/globals";
 import { bot } from "./config/bot";
 import { getUser, updateUserTokens } from "./controllers/users-controller";
 import {
@@ -58,7 +58,7 @@ const main = async () => {
         // If user is unpaid and free limit is over
         if (
           user &&
-          user?.totalTokens >= 10 &&
+          user?.totalTokens >= Number(process?.env?.FREE_TOKEN_LIMIT) &&
           user?.subscriptionStatus !== "active"
         ) {
           let checkoutUrl: string | undefined = "";
@@ -71,6 +71,8 @@ const main = async () => {
             );
           } catch (error) {
             console.log("err", error);
+            ctx?.reply(errorMsg);
+            ctx?.reply(supportMsg);
           }
 
           if (!!checkoutUrl) {
@@ -86,6 +88,8 @@ const main = async () => {
       }
     } catch (err) {
       console.log("err", err);
+      ctx?.reply(errorMsg);
+      ctx?.reply(supportMsg);
     }
 
     await next();
@@ -112,6 +116,7 @@ const main = async () => {
     } catch (err) {
       console.log("error", err);
       ctx?.reply("Cannot fetch our previous chat history.");
+      ctx?.reply(supportMsg);
     }
 
     try {
@@ -130,16 +135,16 @@ const main = async () => {
           response?.usage?.total_tokens || 0
         );
       } catch (err) {
-        ctx?.reply("Something went wrong!");
+        ctx?.reply(errorMsg);
+        ctx?.reply(supportMsg);
       }
 
       // Reply to the user
       ctx?.reply(modelText);
     } catch (err) {
       console.log("error", err);
-      ctx?.reply(
-        "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
-      );
+      ctx?.reply(errorMsg);
+      ctx?.reply(supportMsg);
     }
   });
 
@@ -159,6 +164,7 @@ const main = async () => {
     } catch (err) {
       console.log("err", err);
       ctx?.reply("Cannot fetch our previous chat history.");
+      ctx?.reply(supportMsg);
     }
 
     // Extract image info
@@ -179,6 +185,7 @@ const main = async () => {
     } catch (err) {
       console.log("err", err);
       ctx?.reply("Cannot parse image");
+      ctx?.reply(supportMsg);
     }
 
     // Parse extracted image info with model
@@ -189,6 +196,7 @@ const main = async () => {
       } catch (err) {
         console.log("err", err);
         ctx?.reply("Cannot fetch our previous chat history.");
+        ctx?.reply(supportMsg);
       }
 
       const response = await defaultModelChat(chatHistory);
@@ -205,16 +213,16 @@ const main = async () => {
         );
         await createEvent(fromUser?.id, "assistant", modelResponse);
       } catch (err) {
-        console.log("err", err);
+        ctx?.reply(errorMsg);
+        ctx?.reply(supportMsg);
       }
 
       // Reply to the user
       ctx?.reply(modelResponse);
     } catch (err) {
       console.log("error", err);
-      ctx?.reply(
-        "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
-      );
+      ctx?.reply(errorMsg);
+      ctx?.reply(supportMsg);
     }
   });
 

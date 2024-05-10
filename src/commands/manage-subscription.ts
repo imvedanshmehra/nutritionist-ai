@@ -2,6 +2,7 @@ import { getSubscription } from "@lemonsqueezy/lemonsqueezy.js";
 import { bot } from "../config/bot";
 import { getUser } from "../controllers/users-controller";
 import { Markup } from "telegraf";
+import { errorMsg, supportMsg } from "../utils/globals";
 
 const manageSubCommand = () =>
   bot.command("manage", async (ctx) => {
@@ -24,7 +25,8 @@ const manageSubCommand = () =>
         );
       } catch (err) {
         console.log("err", err);
-        ctx?.reply("Something went wrong! Please try again later");
+        ctx?.reply(errorMsg);
+        ctx?.reply(supportMsg);
       }
     } else {
       ctx?.reply("You don't have any active subscription");

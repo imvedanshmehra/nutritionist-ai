@@ -1,6 +1,6 @@
 import { bot } from "../config/bot";
 import { deleteAllEventsOfUser } from "../controllers/events-controller";
-import { welcomeMessage } from "../utils/globals";
+import { errorMsg, supportMsg, welcomeMessage } from "../utils/globals";
 
 const resetCommand = () =>
   bot.command("reset", async (ctx) => {
@@ -15,9 +15,8 @@ const resetCommand = () =>
       ctx?.reply(welcomeMessage(fromUser?.first_name));
     } catch (err) {
       console.log("err", err);
-      ctx?.reply(
-        "Oops! This was unexpected but something went wrong! Please try again in sometime 😭"
-      );
+      ctx?.reply(errorMsg);
+      ctx?.reply(supportMsg);
     }
   });
 
