@@ -27,23 +27,27 @@ export const getSubscriptionEvent = (req: any, res: Response) => {
 
   // Type guard to check if the object has a 'meta' property.
   if (webhookHasMeta(data)) {
+    // Send thank you message after subscribing
+    if (data?.meta?.event_name === "subscription_created") {
+      bot?.telegram
+        ?.sendMessage(data?.meta?.custom_data?.chat_id, userPaidMessage)
+        ?.then(() => {
+          bot?.telegram?.sendMessage(
+            data?.meta?.custom_data?.chat_id,
+            "It might take us a few seconds to activate your subscription ⏳"
+          );
+          bot?.telegram?.sendMessage(
+            data?.meta?.custom_data?.chat_id,
+            supportMsg
+          );
+        });
+    }
+
     updateUserSubStatus(
       data?.meta?.custom_data?.user_id,
       data?.data?.id,
       data?.data?.attributes?.status
     );
-    // Send thank you message after subscribing
-    if (data?.meta?.event_name === "subscription_created") {
-      bot?.telegram?.sendMessage(
-        data?.meta?.custom_data?.chat_id,
-        userPaidMessage
-      );
-      bot?.telegram?.sendMessage(
-        data?.meta?.custom_data?.chat_id,
-        "It might take us a few seconds to activate your subscription ⏳"
-      );
-      bot?.telegram?.sendMessage(data?.meta?.custom_data?.chat_id, supportMsg);
-    }
     return res.status(200).send("Ok");
   }
   return res.status(400).send("Data Invalid");
