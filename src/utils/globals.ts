@@ -29,7 +29,7 @@ const userPaidMessage =
 const errorMsg = "Oops! Something went wrong. Please try again later";
 
 const supportMsg =
-  "For any feedback, feature request or issues please feel free to reach out to me 👉 techwithvedash@gmail.com";
+  "For any feedback, feature request or issues please feel free to reach out to me 👉 vedanshofficial@gmail.com";
 
 export {
   welcomeMessage,
