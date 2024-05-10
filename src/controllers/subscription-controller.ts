@@ -32,14 +32,17 @@ export const getSubscriptionEvent = (req: any, res: Response) => {
       bot?.telegram
         ?.sendMessage(data?.meta?.custom_data?.chat_id, userPaidMessage)
         ?.then(() => {
-          bot?.telegram?.sendMessage(
-            data?.meta?.custom_data?.chat_id,
-            "It might take us a few seconds to activate your subscription ⏳"
-          );
-          bot?.telegram?.sendMessage(
-            data?.meta?.custom_data?.chat_id,
-            supportMsg
-          );
+          bot?.telegram
+            ?.sendMessage(
+              data?.meta?.custom_data?.chat_id,
+              "It might take us a few seconds to activate your subscription ⏳"
+            )
+            ?.then(() => {
+              bot?.telegram?.sendMessage(
+                data?.meta?.custom_data?.chat_id,
+                supportMsg
+              );
+            });
         });
     }
 
