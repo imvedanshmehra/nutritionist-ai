@@ -1,12 +1,12 @@
 const welcomeMessage = (userName: string) => {
-  return `🥦 Hello ${userName}, Welcome to Nutritionist AI! Your go-to nutrition assistant available 24*7 to help you read and understand food labels and for all your other dietary questions and concerns. Let's work together to achieve your health goals! 🍎
+  return `Hello ${userName} 👋 Welcome to Nutritionist AI 🥦 Your go-to nutrition assistant available 24*7 for all your dietary questions and concerns. Let's work together to achieve your health goals! 💪
   
-How to use me?
-💬 Type in ingredients of the food item and learn more about the ingredients used.
-📷 Send me a photo of the food product and learn more about it.
+Using me is very easy:
+💬 Type in ingredients of the food item.
+📷 Send me a photo of the food product.
 🗣️ Ask questions tailored to your specific nutrition goals.
 
-✅ Read and understand food labels easily
+✅ Understand food labels easily
 ✅ Make healthy choices every day
 ✅ Follow your health goals
 ✅ Build a healthy lifestyle
