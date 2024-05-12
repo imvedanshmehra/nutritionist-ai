@@ -15,6 +15,7 @@ export async function getCheckoutURL(
         embed: false,
         media: false,
         logo: true,
+        discount: true,
       },
       checkoutData: {
         name: userName,
