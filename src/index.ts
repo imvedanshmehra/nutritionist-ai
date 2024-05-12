@@ -59,7 +59,7 @@ const main = async () => {
         if (
           user &&
           user?.totalTokens >= Number(process?.env?.FREE_TOKEN_LIMIT) &&
-          user?.subscriptionStatus !== "active"
+          user?.subscriptionStatus !== ("active" || "paid")
         ) {
           let checkoutUrl: string | undefined = "";
 
