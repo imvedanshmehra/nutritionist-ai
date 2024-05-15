@@ -15,6 +15,7 @@
     "body-parser": "^1.20.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "groq-sdk": "^0.3.3",
     "mongoose": "^8.3.3",
     "openai": "^4.40.1",
     "telegraf": "^4.16.3",

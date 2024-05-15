@@ -125,6 +125,7 @@ const main = async () => {
       const modelText =
         response?.choices[0]?.message?.content || "Please try again!";
 
+      const modifiedText = modelText?.split(/\n\n/);
       // Save assistant event
       try {
         await createEvent(fromUser?.id, "assistant", modelText);
@@ -140,7 +141,13 @@ const main = async () => {
       }
 
       // Reply to the user
-      ctx?.reply(modelText);
+      for (const chunk of modifiedText) {
+        if (!!chunk) {
+          await ctx?.replyWithHTML(
+            chunk.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+          );
+        }
+      }
     } catch (err) {
       console.log("error", err);
       ctx?.reply(errorMsg);
@@ -155,6 +162,9 @@ const main = async () => {
     const file = await bot?.telegram?.getFile(
       photos[photos?.length - 1]?.file_id
     );
+
+    // Send the typing action
+    bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
 
     let chatHistory: { text: string; role: UserRole }[] = [];
 
@@ -203,6 +213,8 @@ const main = async () => {
       const modelResponse =
         response?.choices[0]?.message?.content || "Something went wrong!";
 
+      const modifiedText = modelResponse?.split(/\n\n/);
+
       // Store assistant event
       try {
         await updateUserTokens(
@@ -218,7 +230,13 @@ const main = async () => {
       }
 
       // Reply to the user
-      ctx?.reply(modelResponse);
+      for (const chunk of modifiedText) {
+        if (!!chunk) {
+          await ctx?.replyWithHTML(
+            chunk.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+          );
+        }
+      }
     } catch (err) {
       console.log("error", err);
       ctx?.reply(errorMsg);

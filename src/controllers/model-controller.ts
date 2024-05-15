@@ -4,6 +4,7 @@ import {
   systemPrompt,
   modelConfig,
   turboModel,
+  groq,
 } from "../helpers/ai-model";
 import { UserRole } from "../types/events.type";
 
@@ -12,7 +13,7 @@ export const defaultModelChat = async (
   chatHistory: { text: string; role: UserRole }[]
 ) => {
   try {
-    const response = openai.chat.completions.create({
+    const response = groq.chat.completions.create({
       model: defaultModel,
       messages: [
         {
@@ -48,7 +49,8 @@ export const visionChat = async (
         })),
         {
           role: "system",
-          content: "Extract the ingredients of the food item",
+          content:
+            "What are the food ingredients in the image, tell me in this format - Ingredients: Palm oil, sugar",
         },
         {
           role: "user",
