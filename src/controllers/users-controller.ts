@@ -1,6 +1,15 @@
 import userModel from "../models/users";
 import { UserType } from "../types/users.type";
 
+export const getAllUsers = async () => {
+  try {
+    const users = await userModel?.find();
+    return users;
+  } catch (err) {
+    throw err;
+  }
+};
+
 export const getUser = async (userId: number) => {
   try {
     const user = await userModel?.findOne({ tgId: userId });
@@ -11,7 +20,7 @@ export const getUser = async (userId: number) => {
 };
 
 export const createOrUpdateUser = async (user: UserType) => {
-  const { tgId, firstName, lastName, isBot, username } = user;
+  const { tgId, firstName, lastName, isBot, username, chatId } = user;
 
   try {
     const user = await userModel.findOneAndUpdate(
@@ -22,6 +31,7 @@ export const createOrUpdateUser = async (user: UserType) => {
           lastName,
           isBot,
           username,
+          chatId,
         },
       },
       { upsert: true, new: true }

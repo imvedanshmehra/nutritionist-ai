@@ -24,6 +24,7 @@ const startCommand = () => {
         lastName: last_name,
         isBot: is_bot,
         username,
+        chatId: ctx?.update?.message?.chat?.id,
       });
 
       const message = await ctx?.reply(welcomeMessage(fromUser?.first_name));

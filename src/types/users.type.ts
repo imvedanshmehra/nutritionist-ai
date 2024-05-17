@@ -4,4 +4,5 @@ export interface UserType {
   lastName: string;
   isBot: boolean;
   username: string;
+  chatId: number;
 }

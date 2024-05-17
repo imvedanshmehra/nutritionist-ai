@@ -31,10 +31,14 @@ const errorMsg = "Oops! Something went wrong. Please try again later";
 const supportMsg =
   "For any feedback, feature request or issues please feel free to reach out to me 👉 vedanshofficial@gmail.com";
 
+const pushNotificationMessage = (firstName: string) =>
+  `Hi ${firstName} 👀 Need help with diet or nutrition? Your Nutritionist is ready with advice! Tap to get personalized health and nutrition tips. 🥦🏃‍♂️`;
+
 export {
   welcomeMessage,
   subscribeMessage,
   userPaidMessage,
   errorMsg,
   supportMsg,
+  pushNotificationMessage,
 };

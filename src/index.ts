@@ -18,6 +18,7 @@ import startCommand from "./commands/start";
 import resetCommand from "./commands/reset";
 import manageSubCommand from "./commands/manage-subscription";
 import { subscriptionConfig } from "./config/subscription-config";
+import { sendPushNotifications } from "./utils/push-notifications";
 
 const app = express();
 
@@ -48,6 +49,9 @@ const main = async () => {
   startCommand();
   resetCommand();
   manageSubCommand();
+
+  // Send push notifications
+  sendPushNotifications();
 
   bot.use(async (ctx, next) => {
     const fromUser = ctx?.from;
