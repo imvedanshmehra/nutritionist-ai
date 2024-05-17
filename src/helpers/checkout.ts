@@ -23,6 +23,7 @@ export async function getCheckoutURL(
           user_id: userId,
           chat_id: chatId,
         },
+        discountCode: process?.env?.DISCOUNT_CODE,
       },
       productOptions: {
         enabledVariants: [defaultVariantId],
