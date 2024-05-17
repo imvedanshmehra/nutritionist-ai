@@ -50,8 +50,8 @@ const main = async () => {
   resetCommand();
   manageSubCommand();
 
-  // Send push notifications
-  sendPushNotifications();
+  // TODO: Send push notifications
+  // sendPushNotifications();
 
   bot.use(async (ctx, next) => {
     const fromUser = ctx?.from;
