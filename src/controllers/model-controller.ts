@@ -3,7 +3,7 @@ import {
   openai,
   systemPrompt,
   modelConfig,
-  turboModel,
+  visionModel,
   groq,
 } from "../helpers/ai-model";
 import { UserRole } from "../types/events.type";
@@ -37,11 +37,12 @@ export const defaultModelChat = async (
 // Extract info about the image using vision, TODO: Use some other cost effective model for this
 export const visionChat = async (
   imagePath: string,
-  chatHistory: { role: UserRole; text: string }[]
+  chatHistory: { role: UserRole; text: string }[],
+  caption?: string
 ) => {
   try {
     const response = await openai.chat.completions.create({
-      model: turboModel,
+      model: visionModel,
       messages: [
         ...chatHistory?.map((chat) => ({
           role: chat?.role,
@@ -49,12 +50,15 @@ export const visionChat = async (
         })),
         {
           role: "system",
-          content:
-            "What are the food ingredients in the image, tell me in this format - Ingredients: Palm oil, sugar",
+          content: systemPrompt,
         },
         {
           role: "user",
           content: [
+            {
+              type: "text",
+              text: caption || "",
+            },
             {
               type: "image_url",
               image_url: {
@@ -64,7 +68,7 @@ export const visionChat = async (
           ],
         },
       ],
-      max_tokens: 300,
+      max_tokens: 1024,
     });
 
     return response;

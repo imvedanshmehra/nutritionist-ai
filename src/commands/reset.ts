@@ -15,7 +15,7 @@ const resetCommand = () =>
       ctx?.reply(welcomeMessage(fromUser?.first_name));
     } catch (err) {
       console.log("err", err);
-      ctx?.reply(errorMsg);
+      await ctx?.reply(errorMsg);
       ctx?.reply(supportMsg);
     }
   });

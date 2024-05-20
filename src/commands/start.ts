@@ -37,7 +37,7 @@ const startCommand = () => {
       );
     } catch (err) {
       console.log(err);
-      ctx?.reply(errorMsg);
+      await ctx?.reply(errorMsg);
       ctx?.reply(supportMsg);
     }
   });

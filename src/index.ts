@@ -75,7 +75,7 @@ const main = async () => {
             );
           } catch (error) {
             console.log("err", error);
-            ctx?.reply(errorMsg);
+            await ctx?.reply(errorMsg);
             ctx?.reply(supportMsg);
           }
 
@@ -92,7 +92,7 @@ const main = async () => {
       }
     } catch (err) {
       console.log("err", err);
-      ctx?.reply(errorMsg);
+      await ctx?.reply(errorMsg);
       ctx?.reply(supportMsg);
     }
 
@@ -119,7 +119,7 @@ const main = async () => {
       chatHistory = await getAllEventsOfUser(fromUser?.id);
     } catch (err) {
       console.log("error", err);
-      ctx?.reply("Cannot fetch our previous chat history.");
+      await ctx?.reply("Cannot fetch our previous chat history.");
       ctx?.reply(supportMsg);
     }
 
@@ -140,7 +140,7 @@ const main = async () => {
           response?.usage?.total_tokens || 0
         );
       } catch (err) {
-        ctx?.reply(errorMsg);
+        await ctx?.reply(errorMsg);
         ctx?.reply(supportMsg);
       }
 
@@ -154,7 +154,7 @@ const main = async () => {
       }
     } catch (err) {
       console.log("error", err);
-      ctx?.reply(errorMsg);
+      await ctx?.reply(errorMsg);
       ctx?.reply(supportMsg);
     }
   });
@@ -172,64 +172,42 @@ const main = async () => {
 
     let chatHistory: { text: string; role: UserRole }[] = [];
 
+    // Save user event
+    if (!!caption) {
+      try {
+        await createEvent(fromUser?.id, "user", caption);
+      } catch (err) {
+        ctx?.reply("Something went wrong!");
+      }
+    }
+
     // Fetch previous chat history
     try {
       chatHistory = await getAllEventsOfUser(fromUser?.id);
     } catch (err) {
       console.log("err", err);
-      ctx?.reply("Cannot fetch our previous chat history.");
+      await ctx?.reply("Cannot fetch our previous chat history.");
       ctx?.reply(supportMsg);
     }
 
     // Extract image info
     try {
-      const imageInfo = await visionChat(file.file_path || "", chatHistory);
-      const visionModelResp = imageInfo?.choices[0]?.message?.content;
-
-      // Store user event
-      try {
-        await createEvent(
-          fromUser?.id,
-          "user",
-          `${visionModelResp} ${caption}`
-        );
-      } catch (err) {
-        console.log("err", err);
-      }
-    } catch (err) {
-      console.log("err", err);
-      ctx?.reply("Cannot parse image");
-      ctx?.reply(supportMsg);
-    }
-
-    // Parse extracted image info with model
-    try {
-      // Fetch latest chat history
-      try {
-        chatHistory = await getAllEventsOfUser(fromUser?.id);
-      } catch (err) {
-        console.log("err", err);
-        ctx?.reply("Cannot fetch our previous chat history.");
-        ctx?.reply(supportMsg);
-      }
-
-      const response = await defaultModelChat(chatHistory);
-      const modelResponse =
-        response?.choices[0]?.message?.content || "Something went wrong!";
-
-      const modifiedText = modelResponse?.split(/\n\n/);
+      const resp = await visionChat(file.file_path || "", chatHistory, caption);
+      const visionModelResp =
+        resp?.choices[0]?.message?.content || "Something went wrong!";
+      const modifiedText = visionModelResp?.split(/\n\n/);
 
       // Store assistant event
       try {
         await updateUserTokens(
           fromUser?.id,
-          response?.usage?.prompt_tokens || 0,
-          response?.usage?.completion_tokens || 0,
-          response?.usage?.total_tokens || 0
+          resp?.usage?.prompt_tokens || 0,
+          resp?.usage?.completion_tokens || 0,
+          resp?.usage?.total_tokens || 0
         );
-        await createEvent(fromUser?.id, "assistant", modelResponse);
+        await createEvent(fromUser?.id, "assistant", visionModelResp);
       } catch (err) {
-        ctx?.reply(errorMsg);
+        await ctx?.reply(errorMsg);
         ctx?.reply(supportMsg);
       }
 
@@ -237,13 +215,27 @@ const main = async () => {
       for (const chunk of modifiedText) {
         if (!!chunk) {
           await ctx?.replyWithHTML(
-            chunk.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+            chunk
+              .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+              .replace(/####\s*(.*?)(?:\r?\n|$)/g, "<b>$1</b>\n")
+              .replace(/###\s*(.*?)(?:\r?\n|$)/g, "<b>$1</b>\n")
           );
         }
       }
+
+      // Store user event
+      try {
+        await createEvent(
+          fromUser?.id,
+          "assistant",
+          `${visionModelResp} ${caption}`
+        );
+      } catch (err) {
+        console.log("err", err);
+      }
     } catch (err) {
-      console.log("error", err);
-      ctx?.reply(errorMsg);
+      console.log("err", err);
+      await ctx?.reply("Cannot parse image");
       ctx?.reply(supportMsg);
     }
   });

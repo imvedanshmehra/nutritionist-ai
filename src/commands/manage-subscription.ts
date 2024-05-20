@@ -25,7 +25,7 @@ const manageSubCommand = () =>
         );
       } catch (err) {
         console.log("err", err);
-        ctx?.reply(errorMsg);
+        await ctx?.reply(errorMsg);
         ctx?.reply(supportMsg);
       }
     } else {
