@@ -19,6 +19,7 @@ import resetCommand from "./commands/reset";
 import manageSubCommand from "./commands/manage-subscription";
 import { subscriptionConfig } from "./config/subscription-config";
 import { sendPushNotifications } from "./utils/push-notifications";
+import { formatMessage } from "./utils/chat-helper";
 
 const app = express();
 
@@ -145,11 +146,11 @@ const main = async () => {
       }
 
       // Reply to the user
-      for (const chunk of modifiedText) {
+      for (let chunk of modifiedText) {
         if (!!chunk) {
-          await ctx?.replyWithHTML(
-            chunk.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-          );
+          const formattedResp = formatMessage(chunk);
+
+          await ctx?.replyWithHTML(formattedResp);
         }
       }
     } catch (err) {
@@ -214,12 +215,8 @@ const main = async () => {
       // Reply to the user
       for (const chunk of modifiedText) {
         if (!!chunk) {
-          await ctx?.replyWithHTML(
-            chunk
-              .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-              .replace(/####\s*(.*?)(?:\r?\n|$)/g, "<b>$1</b>\n")
-              .replace(/###\s*(.*?)(?:\r?\n|$)/g, "<b>$1</b>\n")
-          );
+          const formattedMessage = formatMessage(chunk);
+          await ctx?.replyWithHTML(formattedMessage);
         }
       }
 
