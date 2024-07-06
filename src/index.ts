@@ -11,7 +11,7 @@ import { getUser, updateUserTokens } from "./controllers/users-controller";
 import {
   createEvent,
   createEvents,
-  getAllEventsOfUser,
+  getLastNEventsOfUser,
 } from "./controllers/events-controller";
 import { Event } from "./types/events.type";
 import {
@@ -113,9 +113,9 @@ const main = async () => {
     // Show typing indicator
     bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
 
-    // Fetch previous chats
     try {
-      chatHistory = await getAllEventsOfUser(fromUser?.id);
+      // Fetch only last 20 conversations
+      chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
     } catch (err) {
       console.log("error", err);
       await ctx?.reply("Cannot fetch our previous chat history.");
@@ -188,9 +188,9 @@ const main = async () => {
     // Send the typing action
     bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
 
-    // Fetch previous chat history
     try {
-      chatHistory = await getAllEventsOfUser(fromUser?.id);
+      // Fetch only last 20 conversations
+      chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
     } catch (err) {
       console.log("err", err);
       await ctx?.reply("Cannot fetch our previous chat history.");
