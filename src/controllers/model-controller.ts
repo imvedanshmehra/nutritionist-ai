@@ -1,11 +1,10 @@
 import {
-  defaultModel,
   openai,
   systemPrompt,
   modelConfig,
-  visionModel,
   groq,
 } from "../config/model-config";
+import { aiModels } from "../globals/model-globals";
 import { UserRole } from "../types/events.type";
 
 // Default model for chat
@@ -14,7 +13,7 @@ export const defaultChatModel = async (
 ) => {
   try {
     const response = groq.chat.completions.create({
-      model: defaultModel,
+      model: aiModels.LLAMA3_70B,
       messages: [
         {
           role: "system",
@@ -42,7 +41,7 @@ export const visionChatModel = async (
 ) => {
   try {
     const response = await openai.chat.completions.create({
-      model: visionModel,
+      model: aiModels.GPT_4O,
       messages: [
         ...chatHistory?.map((chat) => ({
           role: chat?.role,
