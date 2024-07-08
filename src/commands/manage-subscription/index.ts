@@ -1,8 +1,8 @@
 import { getSubscription } from "@lemonsqueezy/lemonsqueezy.js";
-import { bot } from "../config/bot";
-import { getUser } from "../controllers/users-controller";
+import { bot } from "../../config/bot-config";
+import { getUser } from "../../controllers/users-controller";
 import { Markup } from "telegraf";
-import { errorMsg, supportMsg } from "../utils/globals";
+import { ERROR_MESSAGE, SUPPORT_MESSAGE } from "../../globals/messages";
 
 const manageSubCommand = () =>
   bot.command("manage", async (ctx) => {
@@ -25,8 +25,8 @@ const manageSubCommand = () =>
         );
       } catch (err) {
         console.log("err", err);
-        await ctx?.reply(errorMsg);
-        ctx?.reply(supportMsg);
+        await ctx?.reply(ERROR_MESSAGE);
+        ctx?.reply(SUPPORT_MESSAGE);
       }
     } else {
       ctx?.reply("You don't have any active subscription");

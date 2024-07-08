@@ -1,20 +1,19 @@
 import {
-  defaultModel,
   openai,
   systemPrompt,
   modelConfig,
-  visionModel,
   groq,
-} from "../helpers/ai-model";
+} from "../config/model-config";
+import { aiModels } from "../globals/model-globals";
 import { UserRole } from "../types/events.type";
 
-// Chat withe default model
-export const defaultModelChat = async (
+// Default model for chat
+export const defaultChatModel = async (
   chatHistory: { text: string; role: UserRole }[]
 ) => {
   try {
     const response = groq.chat.completions.create({
-      model: defaultModel,
+      model: aiModels.LLAMA3_70B,
       messages: [
         {
           role: "system",
@@ -35,14 +34,14 @@ export const defaultModelChat = async (
 };
 
 // Extract info about the image using vision, TODO: Use some other cost effective model for this
-export const visionChat = async (
+export const visionChatModel = async (
   imagePath: string,
   chatHistory: { role: UserRole; text: string }[],
   caption?: string
 ) => {
   try {
     const response = await openai.chat.completions.create({
-      model: visionModel,
+      model: aiModels.GPT_4O,
       messages: [
         ...chatHistory?.map((chat) => ({
           role: chat?.role,

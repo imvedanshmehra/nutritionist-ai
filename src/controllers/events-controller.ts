@@ -13,6 +13,24 @@ export const getAllEventsOfUser = async (tgId: number) => {
   }
 };
 
+export const getLastNEventsOfUser = async (tgId: number, limit: number) => {
+  const count = await eventsModel.countDocuments();
+  const skipCount = Math.max(count - limit, 0);
+  try {
+    const response = await eventsModel
+      ?.find({
+        tgId,
+      })
+      .sort({ _id: 1 })
+      .skip(skipCount)
+      .limit(limit);
+
+    return response;
+  } catch (err) {
+    throw err;
+  }
+};
+
 // Create single event
 export const createEvent = async (
   tgId: number,
