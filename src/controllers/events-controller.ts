@@ -13,9 +13,14 @@ export const getAllEventsOfUser = async (tgId: number) => {
   }
 };
 
-export const getLastNEventsOfUser = async (tgId: number, limit: number) => {
+export const getLastNEventsOfUser = async (
+  tgId: number,
+  limit: number = 20
+) => {
   const count = await eventsModel.countDocuments();
   const skipCount = Math.max(count - limit, 0);
+  console.log("count==> ", count);
+  console.log("skipCount==> ", skipCount);
   try {
     const response = await eventsModel
       ?.find({
