@@ -116,6 +116,7 @@ const main = async () => {
     try {
       // Fetch only last 20 conversations
       chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
+      console.log("Last 20 chat history===> ", chatHistory);
     } catch (err) {
       console.log("error", err);
       await ctx?.reply("Cannot fetch our previous chat history.");
@@ -191,6 +192,7 @@ const main = async () => {
     try {
       // Fetch only last 20 conversations
       chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
+      console.log("Last 20 chat history===> ", chatHistory);
     } catch (err) {
       console.log("err", err);
       await ctx?.reply("Cannot fetch our previous chat history.");
