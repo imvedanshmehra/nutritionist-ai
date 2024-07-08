@@ -1,6 +1,10 @@
-import { createOrUpdateUser } from "../controllers/users-controller";
-import { errorMsg, supportMsg, welcomeMessage } from "../utils/globals";
-import { bot } from "../config/bot";
+import { createOrUpdateUser } from "../../controllers/users-controller";
+import {
+  ERROR_MESSAGE,
+  SUPPORT_MESSAGE,
+  WELCOME_MESSAGE,
+} from "../../globals/messages";
+import { bot } from "../../config/bot-config";
 
 const startCommand = () => {
   return bot?.start(async (ctx) => {
@@ -27,7 +31,7 @@ const startCommand = () => {
         chatId: ctx?.update?.message?.chat?.id,
       });
 
-      const message = await ctx?.reply(welcomeMessage(fromUser?.first_name));
+      const message = await ctx?.reply(WELCOME_MESSAGE(fromUser?.first_name));
 
       // Pin welcome message
       bot?.telegram?.unpinAllChatMessages(ctx?.message?.chat?.id);
@@ -37,8 +41,8 @@ const startCommand = () => {
       );
     } catch (err) {
       console.log(err);
-      await ctx?.reply(errorMsg);
-      ctx?.reply(supportMsg);
+      await ctx?.reply(ERROR_MESSAGE);
+      ctx?.reply(SUPPORT_MESSAGE);
     }
   });
 };

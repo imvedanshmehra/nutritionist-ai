@@ -1,24 +1,31 @@
 import { message } from "telegraf/filters";
 import "dotenv/config";
-import dbConnect from "./config/db";
-import { errorMsg, subscribeMessage, supportMsg } from "./utils/globals";
-import { bot } from "./config/bot";
+import dbConnect from "./config/db-config";
+import {
+  ERROR_MESSAGE,
+  SUBSCRIBE_MESSAGE,
+  SUPPORT_MESSAGE,
+} from "./globals/messages";
+import { bot } from "./config/bot-config";
 import { getUser, updateUserTokens } from "./controllers/users-controller";
 import {
   createEvent,
-  getAllEventsOfUser,
+  createEvents,
+  getLastNEventsOfUser,
 } from "./controllers/events-controller";
-import { UserRole } from "./types/events.type";
-import { defaultModelChat, visionChat } from "./controllers/model-controller";
+import { Event } from "./types/events.type";
+import {
+  defaultChatModel,
+  visionChatModel,
+} from "./controllers/model-controller";
 import { Markup } from "telegraf";
-import { getCheckoutURL } from "./helpers/checkout";
+import { getCheckoutURL } from "./utils/checkout";
 import express from "express";
 import { billingRouter } from "./routes/webhook/billing.routes";
 import startCommand from "./commands/start";
 import resetCommand from "./commands/reset";
 import manageSubCommand from "./commands/manage-subscription";
-import { subscriptionConfig } from "./config/subscription-config";
-import { sendPushNotifications } from "./utils/push-notifications";
+import { subscriptionConfig } from "./config/payment-config";
 import { formatMessage } from "./utils/chat-helper";
 
 const app = express();
@@ -51,9 +58,6 @@ const main = async () => {
   resetCommand();
   manageSubCommand();
 
-  // TODO: Send push notifications
-  // sendPushNotifications();
-
   bot.use(async (ctx, next) => {
     const fromUser = ctx?.from;
     // If free user and limit exceeded
@@ -76,13 +80,13 @@ const main = async () => {
             );
           } catch (error) {
             console.log("err", error);
-            await ctx?.reply(errorMsg);
-            ctx?.reply(supportMsg);
+            await ctx?.reply(ERROR_MESSAGE);
+            ctx?.reply(SUPPORT_MESSAGE);
           }
 
           if (!!checkoutUrl) {
             ctx.replyWithHTML(
-              `<b>${subscribeMessage}</b>`,
+              `<b>${SUBSCRIBE_MESSAGE}</b>`,
               Markup.inlineKeyboard([
                 [Markup.button.url("Subscribe 🚀", checkoutUrl)],
               ])
@@ -93,8 +97,8 @@ const main = async () => {
       }
     } catch (err) {
       console.log("err", err);
-      await ctx?.reply(errorMsg);
-      ctx?.reply(supportMsg);
+      await ctx?.reply(ERROR_MESSAGE);
+      ctx?.reply(SUPPORT_MESSAGE);
     }
 
     await next();
@@ -103,37 +107,57 @@ const main = async () => {
   bot?.on(message("text"), async (ctx) => {
     const fromUser = ctx?.update?.message?.from;
     const messageText = ctx?.message?.text;
-    let chatHistory: { text: string; role: UserRole }[] = [];
 
-    // Send the typing action
+    let chatHistory: Event[] = [];
+
+    // Show typing indicator
     bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
 
-    // Save user event
     try {
-      await createEvent(fromUser?.id, "user", messageText);
-    } catch (err) {
-      ctx?.reply("Something went wrong!");
-    }
-
-    try {
-      // Fetch and store previous chat history
-      chatHistory = await getAllEventsOfUser(fromUser?.id);
+      // Fetch only last 20 conversations
+      chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
     } catch (err) {
       console.log("error", err);
       await ctx?.reply("Cannot fetch our previous chat history.");
-      ctx?.reply(supportMsg);
+      ctx?.reply(SUPPORT_MESSAGE);
     }
 
+    chatHistory?.push({
+      role: "user",
+      tgId: fromUser?.id.toString(),
+      text: messageText,
+    });
+
     try {
-      const response = await defaultModelChat(chatHistory);
+      const response = await defaultChatModel(chatHistory);
 
       const modelText =
         response?.choices[0]?.message?.content || "Please try again!";
 
       const modifiedText = modelText?.split(/\n\n/);
-      // Save assistant event
+
+      chatHistory.push({
+        role: "assistant",
+        tgId: fromUser?.id.toString(),
+        text: modelText,
+      });
+
+      // Send reply
+      for (let chunk of modifiedText) {
+        if (!!chunk) {
+          const formattedResp = formatMessage(chunk);
+          await ctx?.replyWithHTML(formattedResp);
+        }
+      }
+
       try {
-        await createEvent(fromUser?.id, "assistant", modelText);
+        // Save user and assistant chat events
+        await createEvents([
+          { role: "user", tgId: fromUser?.id, text: messageText },
+          { tgId: fromUser?.id, role: "assistant", text: modelText },
+        ]);
+
+        // Update tokens used by the user
         await updateUserTokens(
           fromUser?.id,
           response?.usage?.prompt_tokens || 0,
@@ -141,22 +165,14 @@ const main = async () => {
           response?.usage?.total_tokens || 0
         );
       } catch (err) {
-        await ctx?.reply(errorMsg);
-        ctx?.reply(supportMsg);
-      }
-
-      // Reply to the user
-      for (let chunk of modifiedText) {
-        if (!!chunk) {
-          const formattedResp = formatMessage(chunk);
-
-          await ctx?.replyWithHTML(formattedResp);
-        }
+        console.log("err", err);
+        await ctx?.reply(ERROR_MESSAGE);
+        ctx?.reply(SUPPORT_MESSAGE);
       }
     } catch (err) {
       console.log("error", err);
-      await ctx?.reply(errorMsg);
-      ctx?.reply(supportMsg);
+      await ctx?.reply(ERROR_MESSAGE);
+      ctx?.reply(SUPPORT_MESSAGE);
     }
   });
 
@@ -167,52 +183,40 @@ const main = async () => {
     const file = await bot?.telegram?.getFile(
       photos[photos?.length - 1]?.file_id
     );
+    let chatHistory: Event[] = [];
 
     // Send the typing action
     bot?.telegram?.sendChatAction(ctx?.message?.chat?.id, "typing");
 
-    let chatHistory: { text: string; role: UserRole }[] = [];
-
-    // Save user event
-    if (!!caption) {
-      try {
-        await createEvent(fromUser?.id, "user", caption);
-      } catch (err) {
-        ctx?.reply("Something went wrong!");
-      }
-    }
-
-    // Fetch previous chat history
     try {
-      chatHistory = await getAllEventsOfUser(fromUser?.id);
+      // Fetch only last 20 conversations
+      chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
     } catch (err) {
       console.log("err", err);
       await ctx?.reply("Cannot fetch our previous chat history.");
-      ctx?.reply(supportMsg);
+      ctx?.reply(SUPPORT_MESSAGE);
+    }
+
+    if (!!caption) {
+      chatHistory.push({
+        tgId: fromUser?.id.toString(),
+        role: "user",
+        text: caption,
+      });
     }
 
     // Extract image info
     try {
-      const resp = await visionChat(file.file_path || "", chatHistory, caption);
+      const resp = await visionChatModel(
+        file.file_path || "",
+        chatHistory,
+        caption
+      );
       const visionModelResp =
         resp?.choices[0]?.message?.content || "Something went wrong!";
       const modifiedText = visionModelResp?.split(/\n\n/);
 
-      // Store assistant event
-      try {
-        await updateUserTokens(
-          fromUser?.id,
-          resp?.usage?.prompt_tokens || 0,
-          resp?.usage?.completion_tokens || 0,
-          resp?.usage?.total_tokens || 0
-        );
-        await createEvent(fromUser?.id, "assistant", visionModelResp);
-      } catch (err) {
-        await ctx?.reply(errorMsg);
-        ctx?.reply(supportMsg);
-      }
-
-      // Reply to the user
+      // Send reply
       for (const chunk of modifiedText) {
         if (!!chunk) {
           const formattedMessage = formatMessage(chunk);
@@ -220,20 +224,38 @@ const main = async () => {
         }
       }
 
-      // Store user event
       try {
-        await createEvent(
+        // Save user and assistant events
+        if (!!caption) {
+          await createEvent(fromUser?.id, "user", caption);
+        }
+        await createEvents([
+          {
+            tgId: fromUser?.id,
+            role: "assistant",
+            text: `${visionModelResp}`,
+          },
+          {
+            tgId: fromUser?.id,
+            role: "assistant",
+            text: `${visionModelResp} ${caption}`,
+          },
+        ]);
+        // Update tokens used by the user
+        await updateUserTokens(
           fromUser?.id,
-          "assistant",
-          `${visionModelResp} ${caption}`
+          resp?.usage?.prompt_tokens || 0,
+          resp?.usage?.completion_tokens || 0,
+          resp?.usage?.total_tokens || 0
         );
       } catch (err) {
-        console.log("err", err);
+        await ctx?.reply(ERROR_MESSAGE);
+        ctx?.reply(SUPPORT_MESSAGE);
       }
     } catch (err) {
       console.log("err", err);
       await ctx?.reply("Cannot parse image");
-      ctx?.reply(supportMsg);
+      ctx?.reply(SUPPORT_MESSAGE);
     }
   });
 
