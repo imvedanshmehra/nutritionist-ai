@@ -2,11 +2,8 @@ import { Response } from "express";
 import crypto from "node:crypto";
 import { webhookHasMeta } from "../lib/typeguards";
 import { updateUserSubStatus } from "./users-controller";
-import { bot } from "../config/bot-config";
-import {
-  SUPPORT_MESSAGE,
-  PAYMENT_SUCCESSFUL_MESSAGE,
-} from "../globals/messages";
+import { bot } from "../config/bot";
+import { supportMsg, userPaidMessage } from "../utils/globals";
 
 export const getSubscriptionEvent = (req: any, res: Response) => {
   if (!process.env.LEMONSQUEEZY_WEBHOOK_SECRET) {
@@ -33,10 +30,7 @@ export const getSubscriptionEvent = (req: any, res: Response) => {
     // Send thank you message after subscribing
     if (data?.meta?.event_name === "subscription_created") {
       bot?.telegram
-        ?.sendMessage(
-          data?.meta?.custom_data?.chat_id,
-          PAYMENT_SUCCESSFUL_MESSAGE
-        )
+        ?.sendMessage(data?.meta?.custom_data?.chat_id, userPaidMessage)
         ?.then(() => {
           bot?.telegram
             ?.sendMessage(
@@ -46,7 +40,7 @@ export const getSubscriptionEvent = (req: any, res: Response) => {
             ?.then(() => {
               bot?.telegram?.sendMessage(
                 data?.meta?.custom_data?.chat_id,
-                SUPPORT_MESSAGE
+                supportMsg
               );
             });
         });
