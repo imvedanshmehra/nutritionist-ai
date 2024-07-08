@@ -11,7 +11,7 @@ import { getUser, updateUserTokens } from "./controllers/users-controller";
 import {
   createEvent,
   createEvents,
-  getAllEventsOfUser,
+  getLastNEventsOfUser,
 } from "./controllers/events-controller";
 import { Event } from "./types/events.type";
 import {
@@ -115,8 +115,7 @@ const main = async () => {
 
     try {
       // Fetch only last 20 conversations
-      chatHistory = await getAllEventsOfUser(fromUser?.id);
-      console.log("Last 20 chat history===> ", chatHistory);
+      chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
     } catch (err) {
       console.log("error", err);
       await ctx?.reply("Cannot fetch our previous chat history.");
@@ -191,8 +190,7 @@ const main = async () => {
 
     try {
       // Fetch only last 20 conversations
-      chatHistory = await getAllEventsOfUser(fromUser?.id);
-      console.log("Last 20 chat history===> ", chatHistory);
+      chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
     } catch (err) {
       console.log("err", err);
       await ctx?.reply("Cannot fetch our previous chat history.");
