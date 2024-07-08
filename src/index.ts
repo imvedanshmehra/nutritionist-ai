@@ -11,7 +11,7 @@ import { getUser, updateUserTokens } from "./controllers/users-controller";
 import {
   createEvent,
   createEvents,
-  getLastNEventsOfUser,
+  getAllEventsOfUser,
 } from "./controllers/events-controller";
 import { Event } from "./types/events.type";
 import {
@@ -115,7 +115,7 @@ const main = async () => {
 
     try {
       // Fetch only last 20 conversations
-      chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
+      chatHistory = await getAllEventsOfUser(fromUser?.id);
       console.log("Last 20 chat history===> ", chatHistory);
     } catch (err) {
       console.log("error", err);
@@ -191,7 +191,7 @@ const main = async () => {
 
     try {
       // Fetch only last 20 conversations
-      chatHistory = await getLastNEventsOfUser(fromUser?.id, 20);
+      chatHistory = await getAllEventsOfUser(fromUser?.id);
       console.log("Last 20 chat history===> ", chatHistory);
     } catch (err) {
       console.log("err", err);
